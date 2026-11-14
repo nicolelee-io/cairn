@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `auto_location` integer DEFAULT false NOT NULL;

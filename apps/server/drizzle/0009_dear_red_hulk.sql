@@ -1,0 +1,1 @@
+ALTER TABLE `entry` ADD `weather_rev` integer;

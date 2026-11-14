@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# A stand-in for restic, enough for test/run.sh: the "repository" is a local directory,
+# a snapshot is a copy of the paths backed up. FAKE_RESTIC_FAIL=<subcommand> makes one fail.
+set -euo pipefail
+repo=$RESTIC_REPOSITORY
+cmd=${1:-}
+shift || true
+[ "${FAKE_RESTIC_FAIL:-}" != "$cmd" ] || { echo "Fatal: $cmd failed on purpose (\"quoted\" and \\ backslash)" >&2; exit 1; }
+case "$cmd" in
+  init) mkdir -p "$repo/snaps" && echo "created restic repository" ;;
+  cat) [ -d "$repo/snaps" ] || { echo "Fatal: unable to open config file: no such repository" >&2; exit 1; } ;;
+  unlock | forget | check) ;;
+  backup)
+    paths=()
+    while [ $# -gt 0 ]; do
+      case "$1" in --host | --tag) shift 2 ;; --json) shift ;; *) paths+=("$1"); shift ;; esac
+    done
+    id=$(printf '%s' "$(date +%s%N)" | sha256sum | cut -c1-64)
+    mkdir -p "$repo/snaps/$id"
+    for p in "${paths[@]}"; do cp -a --parents "$p" "$repo/snaps/$id/"; done
+    echo '{"message_type":"status","percent_done":0.5}'
+    echo "{\"message_type\":\"summary\",\"files_new\":3,\"data_added\":${FAKE_DATA_ADDED:-4242},\"snapshot_id\":\"$id\"}"
+    ;;
+  restore)
+    snap=$1
+    shift
+    target='' include=''
+    while [ $# -gt 0 ]; do
+      case "$1" in --target) target=$2; shift 2 ;; --include) include=$2; shift 2 ;; *) shift 2 ;; esac
+    done
+    [ "$snap" != latest ] || snap=$(ls -t "$repo/snaps" | head -n 1)
+    [ -d "$repo/snaps/$snap" ] || { echo "Fatal: no matching snapshot" >&2; exit 1; }
+    mkdir -p "$target"
+    if [ -n "$include" ]; then
+      (cd "$repo/snaps/$snap" && [ ! -e ".$include" ] || cp -a --parents ".$include" "$target/")
+    else
+      cp -a "$repo/snaps/$snap/." "$target/"
+    fi
+    ;;
+  ls)
+    snap=$1
+    [ "$snap" != latest ] || snap=$(ls -t "$repo/snaps" 2>/dev/null | head -n 1)
+    [ -n "$snap" ] && [ -d "$repo/snaps/$snap" ] || { echo "Fatal: no matching snapshot" >&2; exit 1; }
+    echo "snapshot ${snap:0:8} of [paths] filtered by [] at 2026-01-01 00:00:00 +0000 UTC):"
+    (cd "$repo/snaps/$snap" && find . -type f | sed 's|^\.||')
+    ;;
+  snapshots) ls "$repo/snaps" ;;
+  *) echo "stub restic: unhandled '$cmd'" >&2; exit 2 ;;
+esac

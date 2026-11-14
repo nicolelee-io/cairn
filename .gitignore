@@ -1,0 +1,41 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.DS_Store
+__pycache__/
+
+# Env and secrets
+.env
+# Claude Code's private notes about the maintainer's own setup
+CLAUDE.local.md
+.env.*
+!.env.example
+!.env.backup.example
+
+# Data (never commit real journal data)
+data/
+data-dev/
+backup-staging/
+*.db
+*.db-wal
+*.db-shm
+
+# Day One exports: never commit real ones
+*.zip
+!fixtures/sample-dayone-export.zip
+fixtures/private/
+# Private working docs (release checklists, plans)
+docs/private/
+
+# Private source material for branding
+assets/branding/source/
+dist-types/
+dist-types-node/
+
+# Playwright e2e: throwaway data, session, results and report
+e2e/.data/
+e2e/.auth/
+e2e/.results/
+e2e/.report/

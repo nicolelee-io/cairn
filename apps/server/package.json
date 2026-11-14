@@ -1,0 +1,34 @@
+{
+  "name": "@cairn/server",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/index.js --external:better-sqlite3 --external:@node-rs/argon2 --external:sharp --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" && esbuild src/import/cli.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/import-journal.js --external:better-sqlite3 --external:@node-rs/argon2 --external:sharp --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" && esbuild src/auth/reset-password-cli.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/reset-password.js --external:better-sqlite3 --external:@node-rs/argon2 --external:sharp --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" && esbuild src/auth/make-admin-cli.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist/make-admin.js --external:better-sqlite3 --external:@node-rs/argon2 --external:sharp --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file-if-exists=../../.env src/db/migrate-cli.ts",
+    "reset-password": "tsx --env-file-if-exists=../../.env src/auth/reset-password-cli.ts",
+    "make-admin": "tsx --env-file-if-exists=../../.env src/auth/make-admin-cli.ts",
+    "import:journal": "tsx --env-file-if-exists=../../.env src/import/cli.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@node-rs/argon2": "^2.2.2",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.4",
+    "exif-reader": "^2.0.3",
+    "hono": "^4.13.14",
+    "sharp": "^0.35.5",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/yauzl": "^3.4.0",
+    "@types/yazl": "^3.3.1",
+    "drizzle-kit": "^0.31.11"
+  },
+  "version": "1.0.0"
+}

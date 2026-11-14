@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist-types-node",
+    "rootDir": "src/theme",
+    "tsBuildInfoFile": "dist-types-node/.tsbuildinfo",
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": ["src/theme/generate.ts", "src/theme/buildTheme.ts"]
+}

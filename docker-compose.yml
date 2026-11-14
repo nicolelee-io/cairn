@@ -1,0 +1,41 @@
+services:
+  cairn:
+    image: ghcr.io/nicolelee-io/cairn:latest
+    # `docker compose up --build` builds locally; a deployment pulls the CI-built image instead.
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+        BUILD_DATE: ${BUILD_DATE:-}
+    container_name: cairn
+    ports:
+      - '${CAIRN_PORT:-8086}:3000'
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - cairn_data:/data
+    restart: unless-stopped
+
+  # Off by default: `docker compose --profile backup up -d`. Everything it needs goes in
+  # .env.backup (see .env.backup.example and docs/backup.md); that file stays out of the app's
+  # environment, and the app's .env stays out of this one.
+  backup:
+    profiles: [backup]
+    image: ghcr.io/nicolelee-io/cairn-backup:latest
+    # `docker compose --profile backup up --build` builds it locally.
+    build: ./backup
+    container_name: cairn-backup
+    env_file:
+      - path: .env.backup
+        required: false
+    volumes:
+      # The same named volume as the app: SQLite's backup reads the live database through it, and
+      # the status file the app shows in Settings is written into it. Not a bind mount: the
+      # database's shared-memory file has to be shared properly between the two containers.
+      - cairn_data:/data
+    restart: unless-stopped
+
+volumes:
+  cairn_data:
+    name: cairn_data

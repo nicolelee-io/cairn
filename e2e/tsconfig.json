@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../dist-types/e2e",
+    "rootDir": ".",
+    "tsBuildInfoFile": "../dist-types/e2e/.tsbuildinfo",
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["."],
+  "exclude": [".data", ".results", ".report", ".auth"],
+  "references": [{ "path": "../packages/shared" }, { "path": "../apps/server" }]
+}

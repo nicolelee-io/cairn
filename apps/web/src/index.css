@@ -1,0 +1,525 @@
+@import 'tailwindcss';
+@import './theme/theme.css';
+
+/* M3 window size classes: compact < 600 (bottom bar), medium 600-839 (rail), expanded 840+ (rail and
+   two panes), large 1200+ (sidebar and two panes: the three-column layout). */
+@theme {
+  --breakpoint-*: initial;
+  --breakpoint-medium: 600px;
+  --breakpoint-expanded: 840px;
+  --breakpoint-large: 1200px;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  /* The reading font for entry text (the reader and list excerpts). Literata is the default;
+     lib/entryText.ts overrides this on <html> with the account's choice and loads its files. */
+  --font-entry: 'Literata Variable', Georgia, 'Noto Serif', serif;
+  /* Mood emoji only (it would take digits from the text around them). Named first because a text font
+     with its own black-and-white emoji, like Linux's DejaVu, otherwise wins over the colour one. */
+  --font-emoji: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+}
+
+/* Colours stay as var() references so the prefers-color-scheme switch needs no dark: variants. */
+@theme inline {
+  --color-surface: var(--md-surface);
+  --color-surface-dim: var(--md-surface-dim);
+  --color-surface-bright: var(--md-surface-bright);
+  --color-surface-container-lowest: var(--md-surface-container-lowest);
+  --color-surface-container-low: var(--md-surface-container-low);
+  --color-surface-container: var(--md-surface-container);
+  --color-surface-container-high: var(--md-surface-container-high);
+  --color-surface-container-highest: var(--md-surface-container-highest);
+  --color-surface-variant: var(--md-surface-variant);
+  --color-on-surface: var(--md-on-surface);
+  --color-on-surface-variant: var(--md-on-surface-variant);
+  --color-outline: var(--md-outline);
+  --color-outline-variant: var(--md-outline-variant);
+  --color-inverse-surface: var(--md-inverse-surface);
+  --color-inverse-on-surface: var(--md-inverse-on-surface);
+  --color-inverse-primary: var(--md-inverse-primary);
+  --color-primary: var(--md-primary);
+  --color-on-primary: var(--md-on-primary);
+  --color-primary-container: var(--md-primary-container);
+  --color-on-primary-container: var(--md-on-primary-container);
+  --color-secondary: var(--md-secondary);
+  --color-on-secondary: var(--md-on-secondary);
+  --color-secondary-container: var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+  --color-tertiary: var(--md-tertiary);
+  --color-on-tertiary: var(--md-on-tertiary);
+  --color-tertiary-container: var(--md-tertiary-container);
+  --color-on-tertiary-container: var(--md-on-tertiary-container);
+  --color-error: var(--md-error);
+  --color-on-error: var(--md-on-error);
+  --color-error-container: var(--md-error-container);
+  --color-on-error-container: var(--md-on-error-container);
+  --color-scrim: var(--md-scrim);
+
+  /* shadcn/ui's variable names, mapped onto the M3 roles so its components work unchanged. */
+  --color-background: var(--md-background);
+  --color-foreground: var(--md-on-background);
+  --color-card: var(--md-surface-container-low);
+  --color-card-foreground: var(--md-on-surface);
+  --color-muted: var(--md-surface-container-highest);
+  --color-muted-foreground: var(--md-on-surface-variant);
+  --color-accent: var(--md-secondary-container);
+  --color-accent-foreground: var(--md-on-secondary-container);
+  --color-destructive: var(--md-error);
+  --color-destructive-foreground: var(--md-on-error);
+  --color-border: var(--md-outline-variant);
+  --color-input: var(--md-outline);
+  --color-ring: var(--md-primary);
+}
+
+/* An invisible hit area of at least 44px, centred on the element, so a small control is easy to hit
+   with a finger without changing how it looks. Needs a positioned element (state-layer is one).
+   Neighbours closer than 44px overlap a little; the later one in the page wins the overlap.
+   Touch screens only: a mouse doesn't need it, and where it sticks out of a scrolling list it
+   counts as overflow (a phantom scrollbar), so a scroll container whose rows sit flush against its
+   edges needs `-my-1 py-1` (cancelling margin and padding) to hold the 2px or so it sticks out. */
+@utility tap-target {
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+/* M3 state layer: a currentColor wash on hover/focus/press instead of a darker background. Every
+   control that has one also gets the 44px tap target. */
+@utility state-layer {
+  @apply tap-target;
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 120ms;
+    pointer-events: none;
+  }
+  /* Only where there is a real pointer: on a touch screen :hover sticks to the last tapped element. */
+  @media (hover: hover) {
+    &:hover::before {
+      opacity: 0.08;
+    }
+  }
+  &:focus-visible::before,
+  &:active::before {
+    opacity: 0.12;
+  }
+}
+
+@layer base {
+  /* Native controls (time input, scrollbars, form widgets) follow the same light/dark switch. */
+  :root {
+    color-scheme: light dark;
+    --content-w: 64rem;
+    /* No double-tap-to-zoom (iOS) or tap delay; panning and pinch stay. It combines with the
+       pan-y and none that the swipe areas and the lightbox set (the narrowest wins). */
+    touch-action: manipulation;
+  }
+  /* Thin scrollbars in the theme's own colour, so the panes don't show a grey system bar. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--md-outline-variant) transparent;
+  }
+  /* Below 1200px the bottom bar and FAB are fixed to the window, and a classic scrollbar would
+     take a strip off their width. Phones use overlay scrollbars anyway; this makes a desktop
+     browser at those sizes match. (Wider windows scroll inside panes, which keep their bars.) */
+  @media (max-width: 1199px) {
+    html {
+      scrollbar-width: none;
+    }
+    html::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  html {
+    overscroll-behavior-y: none; /* no pull-to-refresh or rubber-banding of the whole page */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+  /* A modal (the menu drawer, dialogs) freezes the page behind it, so swipes don't scroll it. */
+  html:has(dialog:modal) {
+    overflow: hidden;
+  }
+  /* A press or drag shouldn't highlight interface text, on any pointer. Text you write or read
+     stays selectable (add Tailwind's `select-text` to anything else that should be copyable). */
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input,
+  textarea,
+  [contenteditable],
+  pre,
+  .entry-body,
+  .cm-editor {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+/* The slash menu's list (components/editor/cm/slashCommands.ts, themed in MarkdownEditor). Chromium
+   draws its standard scrollbar, end arrows included, whenever scrollbar-width or scrollbar-color is
+   set (the thin rule on `*` above), and only honours ::-webkit-scrollbar when both are auto. So they
+   are reset here and a bare rounded thumb is drawn; unlayered, so it beats the base layer's `*`.
+   Browsers without ::-webkit-scrollbar (Firefox) keep the thin standard bar, which has no arrows. */
+.cm-tooltip-autocomplete > ul {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+.cm-tooltip-autocomplete > ul::-webkit-scrollbar {
+  width: 10px;
+}
+.cm-tooltip-autocomplete > ul::-webkit-scrollbar-button {
+  display: none;
+}
+.cm-tooltip-autocomplete > ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cm-tooltip-autocomplete > ul::-webkit-scrollbar-thumb {
+  /* A 3px transparent border around the fill gives a slim thumb that floats off the edge. */
+  background: var(--md-outline);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 9999px;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .cm-tooltip-autocomplete > ul {
+    scrollbar-width: thin;
+    scrollbar-color: var(--md-outline) transparent;
+  }
+}
+
+/* Rendered entry text (components/Markdown.tsx). Serif for reading; spacing is for phone widths. */
+@layer components {
+  .entry-body {
+    @apply font-entry leading-relaxed;
+    /* 1.125rem (text-lg) times the account's text size; everything below is in em of it. */
+    font-size: calc(1.125rem * var(--entry-scale, 1));
+    overflow-wrap: anywhere;
+  }
+  .entry-body > * + * {
+    @apply mt-4;
+  }
+  .entry-body :is(h1, h2, h3, h4) {
+    @apply font-sans leading-snug font-medium;
+  }
+  .entry-body h1 {
+    font-size: 1.3333em;
+  }
+  .entry-body h2 {
+    font-size: 1.1111em;
+  }
+  .entry-body :is(h3, h4) {
+    font-size: 1em;
+  }
+  .entry-body mark {
+    @apply rounded-xs bg-primary-container px-0.5 text-on-primary-container;
+  }
+  .entry-body a {
+    @apply text-primary underline underline-offset-2;
+  }
+  .entry-body :is(ul, ol) {
+    @apply pl-6;
+  }
+  .entry-body ul {
+    @apply list-disc;
+  }
+  .entry-body ol {
+    @apply list-decimal;
+  }
+  .entry-body li + li {
+    @apply mt-1;
+  }
+  /* GFM task list: a checkbox in place of the bullet (tickable in the reader when it passes onToggleTask; remark-gfm renders it disabled). */
+  .entry-body ul:has(> .task-list-item) {
+    @apply list-none pl-0;
+  }
+  .entry-body ul ul:has(> .task-list-item) {
+    @apply pl-6;
+  }
+  .entry-body .task-list-item {
+    @apply flex items-baseline gap-2;
+  }
+  .entry-body .task-list-item > input[type='checkbox'] {
+    @apply size-4 shrink-0 translate-y-0.5 accent-primary;
+  }
+  .entry-body .task-list-item:has(> input:checked) {
+    @apply text-on-surface-variant line-through;
+  }
+  /* Footnotes at the foot of the text. */
+  .entry-body section[data-footnotes] {
+    @apply border-t border-outline-variant pt-3 text-[0.8889em] text-on-surface-variant;
+  }
+  .entry-body sup a {
+    @apply px-0.5 no-underline;
+  }
+  .entry-body blockquote {
+    @apply border-l-4 border-outline-variant pl-4 text-on-surface-variant italic;
+  }
+  .entry-body hr {
+    @apply border-outline-variant;
+  }
+  .entry-body table {
+    @apply w-full border-collapse text-[0.8889em];
+  }
+  .entry-body :is(th, td) {
+    @apply border border-outline-variant px-3 py-2 text-left align-top;
+  }
+  .entry-body th {
+    @apply bg-surface-container-high font-medium;
+  }
+  .entry-body del {
+    @apply text-on-surface-variant;
+  }
+  .entry-body code {
+    @apply rounded-xs bg-surface-container-high px-1 font-mono text-[0.9em];
+  }
+  .entry-body pre {
+    @apply overflow-x-auto rounded-md bg-surface-container-high p-3;
+  }
+  .entry-body pre code {
+    @apply bg-transparent p-0;
+  }
+}
+
+/* The navigation drawer: a native <dialog> pinned to the left edge (components in layout/NavDrawer). */
+@layer components {
+  dialog.drawer {
+    @apply m-0 h-dvh max-h-none w-[min(20rem,85vw)] rounded-r-xl bg-surface-container-low p-0 text-on-surface;
+  }
+  dialog.drawer::backdrop {
+    background: color-mix(in srgb, var(--md-scrim) 40%, transparent);
+  }
+  dialog.drawer {
+    overscroll-behavior: contain; /* a swipe at the end of the menu doesn't scroll the page behind */
+  }
+  dialog.drawer[open] {
+    animation: drawer-in 220ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  dialog.drawer[open]::backdrop {
+    animation: drawer-fade 220ms ease-out;
+  }
+  dialog.drawer[open].closing {
+    animation: drawer-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+  dialog.drawer[open].closing::backdrop {
+    animation: drawer-fade 180ms ease-in reverse forwards;
+  }
+  @keyframes drawer-in {
+    from {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes drawer-out {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+  @keyframes drawer-fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    dialog.drawer[open],
+    dialog.drawer[open]::backdrop {
+      animation: none;
+    }
+  }
+}
+
+/* The context menu as a bottom sheet (components/ContextMenu): slides up over a fading backdrop, and
+   plays back the same way while `closing`. The desktop popover has no animation. */
+@layer components {
+  dialog.menu-sheet[open] {
+    animation: sheet-in 220ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  dialog.menu-sheet[open]::backdrop {
+    animation: drawer-fade 220ms ease-out;
+  }
+  dialog.menu-sheet[open].closing {
+    animation: sheet-out 180ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+  /* Its own keyframes: reusing the fade-in's name would not restart the animation. */
+  dialog.menu-sheet[open].closing::backdrop {
+    animation: sheet-fade-out 180ms ease-in forwards;
+  }
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes sheet-out {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes sheet-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    dialog.menu-sheet[open],
+    dialog.menu-sheet[open]::backdrop {
+      animation: none;
+    }
+  }
+}
+
+/* ---- Map view (Leaflet) ----
+   Leaflet's stylesheet loads after this one, so rules are scoped under div.leaflet-container to win. */
+div.leaflet-container {
+  background: var(--color-surface-container);
+  font-family: var(--font-sans);
+}
+div.leaflet-container a {
+  color: var(--color-primary);
+}
+div.leaflet-container .cairn-pin span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+}
+div.leaflet-container .cairn-cluster {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+div.leaflet-container .leaflet-popup-content-wrapper,
+div.leaflet-container .leaflet-popup-tip {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+}
+div.leaflet-container .leaflet-popup-content {
+  margin: 0.75rem 1rem;
+}
+div.leaflet-container .cairn-card-title {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+}
+div.leaflet-container .cairn-card-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-on-surface-variant);
+}
+div.leaflet-container .cairn-card button {
+  cursor: pointer;
+  border-radius: 9999px;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+div.leaflet-container .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  color: var(--color-on-surface-variant);
+}
+div.leaflet-container .leaflet-bar a {
+  background: var(--color-surface-container-high);
+  color: var(--color-on-surface);
+  border-color: var(--color-outline-variant);
+}
+/* OpenStreetMap's tiles are light only: darken them with the dark palette. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
+  }
+}
+:root[data-theme='dark'] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
+}
+
+/* ---- Spinner (components/Spinner.tsx) ----
+   The stones drop in from the bottom up, hold, then all fade out together. The wrapper stays
+   invisible for 250ms so a quick load never shows it. */
+.cairn-spinner {
+  opacity: 0;
+  animation: cairn-appear 200ms ease-out 250ms forwards;
+}
+/* Each stone spells its animation out in one shorthand: the minifier turned a shorthand with no
+   name plus separate longhands into `animation: none`, which killed the spinner in production. */
+.cairn-spinner .stone {
+  opacity: 0;
+}
+.cairn-spinner .s1 { animation: cairn-stone-1 2.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+.cairn-spinner .s2 { animation: cairn-stone-2 2.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+.cairn-spinner .s3 { animation: cairn-stone-3 2.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+.cairn-spinner .s4 { animation: cairn-stone-4 2.4s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+@keyframes cairn-appear {
+  to { opacity: 1; }
+}
+@keyframes cairn-stone-1 {
+  0%, 5% { transform: translateY(-90px); opacity: 0; }
+  7% { opacity: 1; }
+  20%, 85% { transform: none; opacity: 1; }
+  100% { transform: none; opacity: 0; }
+}
+@keyframes cairn-stone-2 {
+  0%, 20% { transform: translateY(-90px); opacity: 0; }
+  22% { opacity: 1; }
+  35%, 85% { transform: none; opacity: 1; }
+  100% { transform: none; opacity: 0; }
+}
+@keyframes cairn-stone-3 {
+  0%, 35% { transform: translateY(-90px); opacity: 0; }
+  37% { opacity: 1; }
+  50%, 85% { transform: none; opacity: 1; }
+  100% { transform: none; opacity: 0; }
+}
+@keyframes cairn-stone-4 {
+  0%, 50% { transform: translateY(-90px); opacity: 0; }
+  52% { opacity: 1; }
+  65%, 85% { transform: none; opacity: 1; }
+  100% { transform: none; opacity: 0; }
+}
+@keyframes cairn-pulse {
+  50% { opacity: 0.45; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cairn-spinner .stone {
+    animation: none;
+    opacity: 1;
+  }
+  .cairn-spinner svg {
+    animation: cairn-pulse 1.6s ease-in-out infinite;
+  }
+}

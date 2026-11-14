@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `show_archived_in_menu` integer DEFAULT true NOT NULL;

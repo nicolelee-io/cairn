@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Backup sidecar for Cairn: restic over the SQLite database, the photos and the attachments. See
+# docs/backup.md.
+set -euo pipefail
+HERE=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck source=lib.sh
+. "$HERE/lib.sh"
+. "$HERE/backup.sh"
+. "$HERE/verify.sh"
+. "$HERE/restore.sh"
+
+usage() {
+  cat >&2 <<'USAGE'
+cairn-backup <command>
+  run                      back up every day at BACKUP_TIME (the default)
+  init                     create the restic repository (once, before the first backup)
+  now                      back up right now
+  verify [full]            test restore: restore the latest snapshot to a scratch directory
+                           and check it; "full" also reads every byte in the repository
+  restore <dir> [id]       restore a snapshot (default: latest) into an empty directory
+  snapshots                list snapshots
+  restic <args...>         run restic itself with this configuration
+USAGE
+}
+
+# Seconds until the next HH:MM in the container's time zone (TZ).
+seconds_until() {
+  local now target
+  now=$(date +%s)
+  target=$(date -d "today $1" +%s)
+  [ "$target" -gt "$now" ] || target=$(date -d "tomorrow $1" +%s)
+  echo $((target - now))
+}
+
+# Sleeps and runs in the background and waits, so SIGTERM from `docker stop` is handled at once.
+scheduler() {
+  local time=${BACKUP_TIME:-03:00} child=''
+  trap '[ -z "$child" ] || kill "$child" 2>/dev/null; exit 0' TERM INT
+  log "cairn-backup: backing up daily at $time ${TZ:-UTC}"
+  preflight
+  if [ "${BACKUP_ON_START:-false}" = true ]; then
+    run_backup || true
+  fi
+  while true; do
+    local secs
+    secs=$(seconds_until "$time")
+    log "next backup in ${secs}s"
+    sleep "$secs" &
+    child=$!
+    wait "$child" || true
+    run_backup || true &
+    child=$!
+    wait "$child" || true
+    child=''
+  done
+}
+
+cmd=${1:-run}
+[ $# -eq 0 ] || shift
+case "$cmd" in
+  run) scheduler ;; # a bad config shows up as a failed run (and in Settings), not a crash loop
+  init) require_config && restic init ;;
+  now) run_backup ;;
+  verify) run_verify "${1:-}" ;;
+  restore) run_restore "$@" ;;
+  snapshots) require_config && restic snapshots --host "$HOST" ;;
+  restic) require_config && exec restic "$@" ;;
+  help | -h | --help) usage ;;
+  *) exec "$cmd" "$@" ;; # e.g. `sh`, for poking around
+esac

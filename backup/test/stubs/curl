@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Records the calls instead of making them.
+printf '%s\n' "$*" >>"$FAKE_CURL_LOG"
+[ -z "${FAKE_CURL_FAIL:-}" ] || exit 22

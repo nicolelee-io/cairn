@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""A stand-in for the sqlite3 CLI (not installed on every dev machine): the few forms the
+backup scripts use. `.backup 'path'` uses SQLite's backup API like the real one."""
+import os, re, sqlite3, sys
+
+args = sys.argv[1:]
+db = None
+sql = None
+i = 0
+while i < len(args):
+    if args[i] == "-cmd":
+        i += 2
+    elif args[i].startswith("-"):
+        i += 1
+    elif db is None:
+        db = args[i]; i += 1
+    else:
+        sql = args[i]; i += 1
+
+m = re.match(r"\.backup '(.*)'$", sql or "")
+if m:
+    src = sqlite3.connect(db)
+    dst = sqlite3.connect(m.group(1))
+    src.backup(dst)
+    dst.close()
+    sys.exit(0)
+if sql.strip().upper() == "PRAGMA INTEGRITY_CHECK" and os.environ.get("FAKE_INTEGRITY") == "bad":
+    print("row 3 missing from index idx_x")
+    sys.exit(0)
+for row in sqlite3.connect(db).execute(sql):
+    print("|".join("" if v is None else str(v) for v in row))

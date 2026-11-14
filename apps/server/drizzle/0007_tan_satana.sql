@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `temp_unit` text DEFAULT 'F' NOT NULL;

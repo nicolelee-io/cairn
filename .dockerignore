@@ -1,0 +1,17 @@
+**/node_modules
+**/dist
+**/dist-types
+.git
+.github
+.env
+.env.*
+backup
+data
+data-dev
+assets
+fixtures
+docs
+**/CLAUDE.md
+.claude
+CLAUDE.local.md
+e2e
