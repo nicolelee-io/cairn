@@ -200,7 +200,8 @@ scripts/         Import, fixture and icon helpers
 ```
 
 Requires Node 24 (see `.nvmrc`). On Windows, use WSL2 or a devcontainer so the native modules
-(better-sqlite3, sharp, argon2) match production.
+(better-sqlite3, sharp, argon2) match production. They ship prebuilt binaries, so the repo's
+`.npmrc` turns off install scripts and no compiler is needed.
 
 ```bash
 npm install
