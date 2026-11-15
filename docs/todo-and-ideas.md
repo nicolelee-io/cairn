@@ -14,8 +14,6 @@ Features and ideas to build; finished ones move to [todo-completed.md](todo-comp
 
 ## Next
 
-- Public 1.0 release: the switch to a public repo and the project page.
-
 - Frontend-only demo, after 1.0: a demo build mode in `apps/web` (`vite build --mode demo`, so no mock code lands in the real bundle) with the API mocked by MSW (Mock Service Worker; it intercepts at the service worker, so it also catches `<img>`/`<video>` loads of `/api/photos/...` and XHR uploads; the demo registers MSW's worker instead of `sw.js`). Seed data from a script that runs the real importer on `fixtures/sample-dayone-export.zip` and records the API's responses as JSON. Handler state in memory (or IndexedDB) so writes last for the visit, a "Demo: changes aren't saved" banner, server-only pages say "Not in the demo", sign-in skipped. A unit test parses every mocked response with the Zod schemas in `packages/shared` so the mocks can't drift from the API; `lib/localRead.ts` already answers the main reads in the server's shapes and may be reusable. Deployed as its own Cloudflare Pages project at the root of a one-level subdomain (the app assumes `/` for `/api`, the router, the manifest and the worker scope). _Est: Sonnet/Opus, L._
 
 
